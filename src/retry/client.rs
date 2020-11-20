@@ -30,13 +30,13 @@ use serde;
 use serde_json;
 use serde_xml_rs;
 
-use errors::*;
-use retry::Retry;
+use crate::errors::*;
+use crate::retry::Retry;
 
-use retry::raw_deserializer;
+use crate::retry::raw_deserializer;
 
 pub trait Deserializer {
-    fn deserialize<T, R>(&self, R) -> Result<T>
+    fn deserialize<T, R>(&self, r: R) -> Result<T>
     where
         T: for<'de> serde::Deserialize<'de>,
         R: Read;
@@ -52,8 +52,9 @@ impl Deserializer for Xml {
         T: for<'de> serde::Deserialize<'de>,
         R: Read,
     {
-        serde_xml_rs::deserialize(r).chain_err(|| "failed xml deserialization")
+        serde_xml_rs::de::from_reader(r).chain_err(|| "failed xml deserialization")
     }
+
     fn content_type(&self) -> header::HeaderValue {
         header::HeaderValue::from_static("text/xml; charset=utf-8")
     }
@@ -159,7 +160,7 @@ impl Client {
     {
         RequestBuilder {
             url,
-            body: body.map(|b| b.into_owned()),
+            body: body.map(Cow::into_owned),
             d,
             client: self.client.clone(),
             headers: self.headers.clone(),

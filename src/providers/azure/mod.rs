@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! azure metadata fetcher
+//! Azure provider, metadata and wireserver fetcher.
 
 mod crypto;
 
@@ -23,10 +23,10 @@ use openssh_keys::PublicKey;
 use reqwest::header::{HeaderName, HeaderValue};
 
 use self::crypto::x509;
-use errors::*;
-use network;
-use providers::MetadataProvider;
-use retry;
+use crate::errors::*;
+use crate::network;
+use crate::providers::MetadataProvider;
+use crate::retry;
 
 #[cfg(test)]
 mod mock_tests;
@@ -231,7 +231,7 @@ impl Azure {
 
     #[cfg(not(test))]
     fn get_fabric_address_from_dhcp() -> Result<IpAddr> {
-        let v = ::util::dns_lease_key_lookup("OPTION_245")?;
+        let v = crate::util::dns_lease_key_lookup("OPTION_245")?;
         // value is an 8 digit hex value. convert it to u32 and
         // then parse that into an ip. Ipv4Addr::from(u32)
         // performs conversion from big-endian
@@ -277,6 +277,17 @@ impl Azure {
             )
             .into())
         }
+    }
+
+    #[cfg(test)]
+    fn metadata_endpoint() -> String {
+        mockito::server_url()
+    }
+
+    #[cfg(not(test))]
+    fn metadata_endpoint() -> String {
+        const URL: &str = "http://169.254.169.254";
+        URL.to_string()
     }
 
     fn get_certs_endpoint(&self) -> Result<String> {
@@ -392,6 +403,21 @@ impl Azure {
             .ok_or_else(|| "empty RoleInstanceList".to_string())?
             .instance_id)
     }
+
+    fn fetch_hostname(&self) -> Result<Option<String>> {
+        const NAME_URL: &str = "metadata/instance/compute/name?api-version=2017-08-01&format=text";
+        let url = format!("{}/{}", Self::metadata_endpoint(), NAME_URL);
+
+        let name = retry::Client::try_new()?
+            .header(
+                HeaderName::from_static("metadata"),
+                HeaderValue::from_static("true"),
+            )
+            .get(retry::Raw, url)
+            .send()
+            .chain_err(|| "failed to get hostname")?;
+        Ok(name)
+    }
 }
 
 impl MetadataProvider for Azure {
@@ -411,7 +437,7 @@ impl MetadataProvider for Azure {
     }
 
     fn hostname(&self) -> Result<Option<String>> {
-        Ok(None)
+        self.fetch_hostname()
     }
 
     fn ssh_keys(&self) -> Result<Vec<PublicKey>> {
