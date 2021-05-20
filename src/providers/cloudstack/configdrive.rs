@@ -26,7 +26,7 @@ pub struct ConfigDrive {
 impl ConfigDrive {
     pub fn try_new() -> Result<Self> {
         // maybe its already mounted
-        let path = Path::new("/media/ConfigDrive/cloudstack/metadata/");
+        let path = Path::new("/media/configdrive/cloudstack/metadata/");
         if path.exists() {
             return Ok(ConfigDrive {
                 temp_dir: None,
@@ -122,11 +122,11 @@ impl MetadataProvider for ConfigDrive {
             "CLOUDSTACK_AVAILABILITY_ZONE",
             "availability_zone",
         )?;
-        add_value(&mut out, "CLOUDSTACK_CLOUD_IDENTIFIER", "cloud_identifier")?;
-        add_value(&mut out, "CLOUDSTACK_INSTANCE_ID", "instance_id")?;
-        add_value(&mut out, "CLOUDSTACK_LOCAL_HOSTNAME", "local_hostname")?;
-        add_value(&mut out, "CLOUDSTACK_SERVICE_OFFERING", "service_offering")?;
-        add_value(&mut out, "CLOUDSTACK_VM_ID", "vm_id")?;
+        add_value(&mut out, "CLOUDSTACK_CLOUD_IDENTIFIER", "cloud-identifier")?;
+        add_value(&mut out, "CLOUDSTACK_INSTANCE_ID", "instance-id")?;
+        add_value(&mut out, "CLOUDSTACK_LOCAL_HOSTNAME", "local-hostname")?;
+        add_value(&mut out, "CLOUDSTACK_SERVICE_OFFERING", "service-offering")?;
+        add_value(&mut out, "CLOUDSTACK_VM_ID", "vm-id")?;
 
         Ok(out)
     }
